@@ -22,7 +22,7 @@ type Credentials struct {
 }
 
 func TestStatus(t *testing.T) {
-	restsrv := webserver.Init(config.WebUIOpts{WebAddr: "127.0.0.1:8080"}, os.DirFS("../webui/build"), nil, log.FallbackLogger)
+	restsrv := webserver.Init(config.WebUIOpts{WebAddr: "127.0.0.1:8089"}, os.DirFS("../webui/build"), nil, log.FallbackLogger)
 	assert.NotNil(t, restsrv)
 	// r, err := http.Get("http://localhost:8080/")
 	// assert.NoError(t, err)
@@ -96,4 +96,33 @@ func TestGetToken(t *testing.T) {
 	assert.Equal(t, err, nil)
 	assert.NotEqual(t, token, nil)
 
+}
+
+func TestTokenUsage(t *testing.T) {
+	host := "http://localhost:8080"
+	restsrv := webserver.Init(config.WebUIOpts{WebAddr: "localhost:8083"}, os.DirFS("../webui/build"), nil, log.FallbackLogger)
+	rr := httptest.NewRecorder()
+
+	credentials := Credentials{
+		User:     "user",
+		Password: "password",
+	}
+
+	payload, err := json.Marshal(credentials)
+	if err != nil {
+		fmt.Println("Error marshaling ", err)
+	}
+	reqToken, err := http.NewRequest("POST", host+"/login", strings.NewReader(string(payload)))
+	assert.Equal(t, err, nil)
+	restsrv.Handler.ServeHTTP(rr, reqToken)
+	fmt.Println(rr.Body)
+
+	reqMetrics, err := http.NewRequest("GET", host+"/metric", nil)
+	assert.Equal(t, err, nil)
+	client := &http.Client{}
+	reqMetrics.Header = make(http.Header)
+	reqMetrics.Header["Token"] = []string{rr.Body.String()}
+	resp, err := client.Do(reqMetrics)
+	assert.Equal(t, err, nil)
+	fmt.Println(resp.StatusCode)
 }

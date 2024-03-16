@@ -138,11 +138,13 @@ jobs:
 
     - name: Test
       run: |
+        docker-compose up -d
         cd src/webui
         yarn install && yarn build
         cd ..
         go build
         go test -failfast -v -timeout=300s -p 1 -coverprofile=profile.cov ./...
+        docker compose down 
 
     - name: Coveralls
       uses: shogo82148/actions-goveralls@v1
